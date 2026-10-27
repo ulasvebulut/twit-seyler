@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Twit Şeyler</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  /* Layout: sticky left rail (search, categories, years) beside one 550px tweet column; stacks on phones */
+  :root {
+    --bg: #f2f3f6;
+    --surface: #ffffff;
+    --ink: #16181d;
+    --muted: #636a77;
+    --line: #dcdfe6;
+    --accent: #2c43cf;
+    --accent-ink: #ffffff;
+    --accent-soft: #e5e8fb;
+    --font-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d0f13;
+      --surface: #161920;
+      --ink: #e7e9ef;
+      --muted: #8c93a2;
+      --line: #272b35;
+      --accent: #8d9dff;
+      --accent-ink: #0d0f13;
+      --accent-soft: #1c2142;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 var(--font-body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  [hidden] { display: none !important; }
+
+  .app {
+    display: grid;
+    grid-template-columns: 270px minmax(0, 560px);
+    gap: 64px;
+    justify-content: center;
+  }
+
+  /* ---------- Left rail ---------- */
+  .side {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding-block: 44px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    scrollbar-width: thin;
+  }
+  .brand h1 {
+    margin: 0;
+    font: 700 2.15rem/1.05 var(--font-display);
+    letter-spacing: -0.025em;
+  }
+  .brand p {
+    margin: 8px 0 0;
+    font: 12px/1.6 var(--font-mono);
+    color: var(--muted);
+  }
+  .search { position: relative; display: block; }
+  .search input {
+    width: 100%;
+    height: 42px;
+    padding: 0 38px 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    font: 15px var(--font-body);
+  }
+  .search input::placeholder { color: var(--muted); }
+  .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .search kbd {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font: 11px var(--font-mono);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 6px;
+    pointer-events: none;
+  }
+  .group { display: flex; flex-direction: column; gap: 10px; }
+  .gh {
+    margin: 0;
+    font: 500 11px var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+  }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    border: 0;
+    border-left: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font: 13px var(--font-body);
+    padding: 8px 4px;
+    cursor: pointer;
+  }
+  .seg button:first-child { border-left: 0; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 4px 9px;
+    font: 13px var(--font-body);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .chip span { font: 11px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .chip[aria-pressed="true"] span { color: inherit; opacity: 0.8; }
+  .years { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .years button {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    padding: 5px 8px;
+    border-radius: 6px;
+    font: 500 14px var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+  .years button span { font-weight: 400; font-size: 12px; color: var(--muted); }
+  .years button:hover { background: var(--surface); }
+  .years button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); }
+  .side .foot { font: 11px/1.6 var(--font-mono); color: var(--muted); margin: 0; }
+
+  /* ---------- Feed ---------- */
+  .feed { padding-block: 36px 120px; min-width: 0; }
+  .result-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font: 12px var(--font-mono);
+    color: var(--muted);
+    padding: 8px 0 4px;
+  }
+  .result-line button { border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; padding: 0; }
+  .notice {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .month {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin: 0;
+    padding: 18px 0 10px;
+    background: var(--bg);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    font: 600 1.1rem/1.2 var(--font-display);
+    letter-spacing: -0.01em;
+    scroll-margin-top: 0;
+  }
+  .month .n { font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .item {
+    display: grid;
+    gap: 10px;
+    padding-block: 22px 14px;
+    scroll-margin-top: 64px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    min-width: 0;
+  }
+  .label {
+    font: 600 1.06rem/1.25 var(--font-display);
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+  .cat {
+    font: 11px/1 var(--font-mono);
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 4px 6px;
+  }
+  .when {
+    margin-left: auto;
+    font: 12px var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .when a { color: var(--muted); }
+  .when a:hover { color: var(--accent); }
+  .tw { max-width: 550px; min-width: 0; }
+  .fallback {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px 12px;
+    display: grid;
+    gap: 8px;
+  }
+  .fb-head { font: 12px var(--font-mono); color: var(--muted); }
+  .fb-text {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 65ch;
+  }
+  .fb-text.empty { color: var(--muted); font-style: italic; }
+  .fb-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 12px;
+    font: 12px var(--font-mono);
+    color: var(--muted);
+    padding-top: 2px;
+  }
+  .embed { display: flex; justify-content: center; }
+  .embed:empty { display: none; }
+  .embed .twitter-tweet, .embed .twitter-tweet-rendered { margin: 0 !important; }
+  .embedded .fallback, .parked .fallback { display: none; }
+  .loading .fb-state::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    vertical-align: 1px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .loading .fb-state::before { animation: pulse 1s ease-in-out infinite alternate; }
+  }
+  @keyframes pulse { from { opacity: 0.25; } to { opacity: 1; } }
+  .end { text-align: center; font: 12px var(--font-mono); color: var(--muted); padding-top: 40px; }
+
+  .float {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right, 0px));
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    z-index: 10;
+  }
+  .float button {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font: 13px var(--font-body);
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+  }
+  .float .resume { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  /* ---------- Phones / narrow windows ---------- */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .side { position: static; max-height: none; overflow: visible; padding-block: 24px 4px; gap: 16px; }
+    .brand h1 { font-size: 1.8rem; }
+    .chips, .years {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .years button { width: auto; gap: 8px; border: 1px solid var(--line); background: var(--surface); }
+    .side .foot { display: none; }
+    .search kbd { display: none; }
+    .feed { padding-top: 8px; }
+    .tw { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <header class="brand">
+      <h1>Twit Şeyler</h1>
+      <p id="stats"></p>
+    </header>
+    <label class="search">
+      <input id="q" type="search" placeholder="Ara: metin, başlık, @hesap" autocomplete="off" aria-label="Tweetlerde ara">
+      <kbd>/</kbd>
+    </label>
+    <div class="group">
+      <h2 class="gh">Sıralama</h2>
+      <div class="seg" id="sort" role="group" aria-label="Sıralama">
+        <button type="button" data-sort="new">En yeni</button>
+        <button type="button" data-sort="old">En eski</button>
+        <button type="button" data-sort="shuffle">Karışık</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2 class="gh">Kategori</h2>
+      <div class="chips" id="cats"></div>
+    </div>
+    <div class="group" id="yearsGroup">
+      <h2 class="gh">Yıllar</h2>
+      <ol class="years" id="years"></ol>
+    </div>
+    <p class="foot" id="foot"></p>
+  </aside>
+  <main class="feed">
+    <div class="result-line" id="resultLine"></div>
+    <div id="xNotice" class="notice" hidden>X'e bağlanılamadı. Tweetler Notion'daki metinleriyle gösteriliyor; her kartta X'te açma linki var.</div>
+    <div id="list"></div>
+    <p class="end" id="end"></p>
+  </main>
+</div>
+<div class="float">
+  <button type="button" class="resume" id="resume" hidden></button>
+  <button type="button" id="toTop" hidden>↑ Başa dön</button>
+</div>
+
+<script src="tweets-data.js"></script>
+<script>
+  window.twttr = (function (d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0], t = window.twttr || {};
+    if (d.getElementById(id)) return t;
+    js = d.createElement(s); js.id = id; js.src = "https://platform.twitter.com/widgets.js";
+    fjs.parentNode.insertBefore(js, fjs);
+    t._e = []; t.ready = function (f) { t._e.push(f); };
+    return t;
+  }(document, "script", "twitter-wjs"));
+</script>
+<script>
+(() => {
+  const DATA = window.TWIT_DATA || { items: [], generated: "" };
+  const ITEMS = DATA.items;
+  const $ = (s) => document.querySelector(s);
+  const list = $("#list");
+  const fmtDay = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", year: "numeric" });
+  const fmtMonth = new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" });
+  const nf = new Intl.NumberFormat("tr-TR");
+  const norm = (s) => s.toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const linkify = (s) => esc(s).replace(/https?:\/\/[^\s<]+/g, (u) =>
+    `<a href="${u}" target="_blank" rel="noopener">${u.length > 60 ? u.slice(0, 57) + "…" : u}</a>`);
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("twit:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("twit:" + k, JSON.stringify(v)); } catch {} },
+  };
+
+  ITEMS.forEach((it, i) => {
+    it.i = i;
+    it.key = it.id || it.t;
+    it.d = new Date(it.t);
+    it.y = String(it.d.getFullYear());
+    it.m = it.y + "-" + String(it.d.getMonth() + 1).padStart(2, "0");
+    it.k = norm([it.n, it.s, it.h ? "@" + it.h : "", it.c].join(" "));
+    it.r = Math.random();
+  });
+
+  // ---------- Header ----------
+  const tweetCount = ITEMS.filter((it) => it.id).length;
+  if (ITEMS.length) {
+    const oldest = ITEMS[ITEMS.length - 1].d, newest = ITEMS[0].d;
+    $("#stats").innerHTML = `${nf.format(ITEMS.length)} kayıt · ${nf.format(tweetCount)} tweet<br>${fmtMonth.format(oldest)} – ${fmtMonth.format(newest)}`;
+  }
+  if (DATA.generated) $("#foot").textContent = `Notion'dan alındı: ${fmtDay.format(new Date(DATA.generated + "T12:00:00"))}`;
+
+  // ---------- Filters ----------
+  const catCounts = new Map();
+  for (const it of ITEMS) catCounts.set(it.c || "__none", (catCounts.get(it.c || "__none") || 0) + 1);
+  const cats = [...catCounts].filter(([c]) => c !== "__none").sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "tr"));
+  const catDefs = [["all", "Tümü", ITEMS.length], ...cats.map(([c, n]) => [c, c, n])];
+  if (catCounts.has("__none")) catDefs.push(["__none", "Kategorisiz", catCounts.get("__none")]);
+
+  const ui = { q: "", cat: store.get("cat", "all"), sort: store.get("sort", "new") };
+  if (!catDefs.some(([k]) => k === ui.cat)) ui.cat = "all";
+  if (!["new", "old", "shuffle"].includes(ui.sort)) ui.sort = "new";
+
+  $("#cats").innerHTML = catDefs.map(([k, label, n]) =>
+    `<button type="button" class="chip" data-cat="${esc(k)}">${esc(label)}<span>${nf.format(n)}</span></button>`).join("");
+
+  function syncControls() {
+    document.querySelectorAll("#cats .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cat === ui.cat)));
+    document.querySelectorAll("#sort button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sort === ui.sort)));
+  }
+
+  function filtered() {
+    const terms = norm(ui.q.trim()).split(/\s+/).filter(Boolean);
+    let out = ITEMS.filter((it) =>
+      (ui.cat === "all" || (ui.cat === "__none" ? !it.c : it.c === ui.cat)) &&
+      terms.every((t) => it.k.includes(t)));
+    if (ui.sort === "old") out = out.slice().reverse();
+    else if (ui.sort === "shuffle") out = out.slice().sort((a, b) => a.r - b.r);
+    return out;
+  }
+
+  // ---------- Rendering ----------
+  let xFailed = false;
+  const tweetUrl = (it) => `https://x.com/${it.h || "i"}/status/${it.id}`;
+
+  function itemHTML(it) {
+    const tweet = !!it.id;
+    const notion = it.u ? ` · <a href="${esc(it.u)}" target="_blank" rel="noopener">Notion</a>` : "";
+    let foot;
+    if (tweet) {
+      const state = xFailed ? "Notion'daki metin" : "Tweet yükleniyor";
+      foot = `<span class="fb-state">${state}</span><a href="${esc(tweetUrl(it))}" target="_blank" rel="noopener">X'te aç ↗</a>`;
+    } else {
+      foot = `<span class="fb-state">Notion notu</span>` + (it.l ? `<a href="${esc(it.l)}" target="_blank" rel="noopener">Linki aç ↗</a>` : "");
+    }
+    return `<article class="item" data-i="${it.i}">
+  <header class="meta">
+    <span class="label">${esc(it.n || "Başlıksız")}</span>${it.c ? `<span class="cat">${esc(it.c)}</span>` : ""}
+    <span class="when"><time datetime="${it.t}">${fmtDay.format(it.d)}</time>${notion}</span>
+  </header>
+  <div class="tw">
+    <div class="fallback">${it.h ? `<div class="fb-head">@${esc(it.h)}</div>` : ""}${it.s ? `<p class="fb-text">${linkify(it.s)}</p>` : `<p class="fb-text empty">Notion'da metin yok.</p>`}<div class="fb-foot">${foot}</div></div>${tweet ? `<div class="embed"></div>` : ""}
+  </div>
+</article>`;
+  }
+
+  let rows = [];
+  function render() {
+    resetEmbeds();
+    syncControls();
+    rows = filtered();
+    const chrono = ui.sort !== "shuffle";
+    const monthCount = new Map(), yearCount = new Map();
+    for (const it of rows) {
+      monthCount.set(it.m, (monthCount.get(it.m) || 0) + 1);
+      yearCount.set(it.y, (yearCount.get(it.y) || 0) + 1);
+    }
+    let html = "", lastMonth = "";
+    const seenYear = new Set();
+    for (const it of rows) {
+      if (chrono && it.m !== lastMonth) {
+        lastMonth = it.m;
+        const idAttr = seenYear.has(it.y) ? "" : ` id="y${it.y}"`;
+        seenYear.add(it.y);
+        html += `<h2 class="month"${idAttr} data-y="${it.y}"><span>${fmtMonth.format(it.d)}</span><span class="n">${monthCount.get(it.m)}</span></h2>`;
+      }
+      html += itemHTML(it);
+    }
+    list.innerHTML = html;
+
+    const filteredView = ui.q.trim() || ui.cat !== "all";
+    $("#resultLine").innerHTML = filteredView
+      ? `<span>${nf.format(rows.length)} sonuç</span><button type="button" id="clear">Filtreyi temizle</button>`
+      : `<span>${ui.sort === "shuffle" ? "Karışık sırada" : ui.sort === "old" ? "En eskiden yeniye" : "En yeniden eskiye"} · ${nf.format(rows.length)} kayıt</span>`;
+    $("#end").textContent = rows.length
+      ? "Hepsi bu kadar."
+      : ui.q.trim() ? `“${ui.q.trim()}” için sonuç yok.` : "Bu filtrede kayıt yok.";
+
+    $("#yearsGroup").hidden = !chrono || !rows.length;
+    const years = [...yearCount.keys()];
+    $("#years").innerHTML = years.map((y) =>
+      `<li><button type="button" data-year="${y}">${y}<span>${nf.format(yearCount.get(y))}</span></button></li>`).join("");
+
+    list.querySelectorAll(".item").forEach((el) => {
+      const hasEmbed = !!ITEMS[el.dataset.i].id;
+      st.set(el, { s: hasEmbed && !xFailed ? "idle" : "none", near: false });
+      if (hasEmbed && !xFailed) { nearObs.observe(el); farObs.observe(el); }
+    });
+    updateCurrentYear();
+  }
+
+  // ---------- Tweet embeds (lazy, a few at a time, unloaded when far away) ----------
+  const MAX_INFLIGHT = 3;
+  const st = new WeakMap();
+  let wReady = false, queue = [], inflight = 0, gen = 0;
+  const theme = () => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+  const nearObs = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      const s = st.get(e.target);
+      if (!s) continue;
+      s.near = e.isIntersecting;
+      if (s.near && s.s === "idle") { s.s = "queued"; queue.push(e.target); }
+    }
+    pump();
+  }, { rootMargin: "1600px 0px" });
+
+  const farObs = new IntersectionObserver((entries) => {
+    for (const e of entries) if (!e.isIntersecting) park(e.target);
+  }, { rootMargin: "9000px 0px" });
+
+  function resetEmbeds() {
+    gen++;
+    inflight = 0;
+    queue = [];
+    nearObs.disconnect();
+    farObs.disconnect();
+  }
+
+  function takeNearest() {
+    let best = 0, bestD = Infinity;
+    queue.forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const d = r.bottom < 0 ? -r.bottom : Math.max(0, r.top - innerHeight);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return queue.splice(best, 1)[0];
+  }
+
+  function pump() {
+    if (!wReady) return;
+    while (inflight < MAX_INFLIGHT && queue.length) {
+      const el = takeNearest();
+      const s = st.get(el);
+      if (!s || !el.isConnected || !s.near) { if (s && s.s === "queued") s.s = "idle"; continue; }
+      load(el, s);
+    }
+  }
+
+  function load(el, s) {
+    const my = gen;
+    const it = ITEMS[el.dataset.i];
+    const box = el.querySelector(".embed");
+    s.s = "loading";
+    el.classList.add("loading");
+    inflight++;
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      if (my === gen) { inflight--; pump(); }
+    };
+    s.release = release;
+    setTimeout(release, 15000);
+    window.twttr.widgets
+      .createTweet(it.id, box, { theme: theme(), dnt: true, align: "center", lang: "tr" })
+      .then((node) => { finish(el, s, node, my); release(); }, () => { finish(el, s, null, my); release(); });
+  }
+
+  function finish(el, s, node, my) {
+    if (my !== gen || !el.isConnected) return;
+    el.classList.remove("loading");
+    const tw = el.querySelector(".tw");
+    if (node) {
+      s.s = "done";
+      el.classList.add("embedded");
+      el.classList.remove("parked");
+      tw.style.minHeight = "";
+    } else {
+      s.s = "gone";
+      el.classList.remove("parked");
+      tw.style.minHeight = "";
+      el.querySelector(".embed").innerHTML = "";
+      el.querySelector(".fb-state").textContent = "X bu tweet'i göstermedi (silinmiş ya da gizli olabilir) · Notion'daki metin";
+    }
+  }
+
+  // For a deleted or hidden tweet, X draws a small "Bulunamadı" box and never settles createTweet.
+  // Its only signal is a resize message with a tiny height, so treat that as "not available".
+  addEventListener("message", (e) => {
+    if (e.origin !== "https://platform.twitter.com") return;
+    let d = e.data;
+    try { if (typeof d === "string") d = JSON.parse(d); } catch { return; }
+    const m = d && d["twttr.embed"];
+    if (!m || m.method !== "twttr.private.resize") return;
+    const h = m.params && m.params[0] && m.params[0].height;
+    const frame = document.getElementById(m.id);
+    const el = frame && frame.closest(".item");
+    const s = el && st.get(el);
+    if (!s || s.s !== "loading" || !(h < 120)) return;
+    finish(el, s, null, gen);
+    s.release();
+  });
+
+  function park(el) {
+    const s = st.get(el);
+    if (!s || s.s !== "done") return;
+    const tw = el.querySelector(".tw");
+    tw.style.minHeight = tw.offsetHeight + "px";
+    el.querySelector(".embed").innerHTML = "";
+    el.classList.remove("embedded");
+    el.classList.add("parked");
+    s.s = "idle";
+  }
+
+  window.twttr.ready(() => {
+    if (!window.twttr.widgets) return;
+    wReady = true;
+    pump();
+  });
+  setTimeout(() => {
+    if (wReady) return;
+    xFailed = true;
+    $("#xNotice").hidden = false;
+    render();
+  }, 12000);
+
+  // ---------- Position memory & navigation ----------
+  const resumeBtn = $("#resume"), toTop = $("#toTop");
+  const isDefaultView = () => !ui.q.trim() && ui.cat === "all" && ui.sort === "new";
+
+  function itemAtTop() {
+    const r = list.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + Math.min(40, r.width / 2), 140);
+    return el ? el.closest(".item") : null;
+  }
+
+  function updateCurrentYear() {
+    const el = itemAtTop();
+    const y = el ? ITEMS[el.dataset.i].y : rows[0] && rows[0].y;
+    document.querySelectorAll("#years button").forEach((b) => b.setAttribute("aria-current", String(b.dataset.year === y)));
+    return el;
+  }
+
+  let tick = 0;
+  addEventListener("scroll", () => {
+    toTop.hidden = scrollY < 1500;
+    if (scrollY > 3000) resumeBtn.hidden = true;
+    if (tick) return;
+    tick = setTimeout(() => {
+      tick = 0;
+      const el = updateCurrentYear();
+      if (el && isDefaultView()) store.set("pos", ITEMS[el.dataset.i].key);
+    }, 400);
+  }, { passive: true });
+
+  toTop.addEventListener("click", () => scrollTo({ top: 0 }));
+
+  // ---------- Events ----------
+  let qTimer = 0;
+  $("#q").addEventListener("input", (e) => {
+    clearTimeout(qTimer);
+    qTimer = setTimeout(() => { ui.q = e.target.value; render(); scrollTo({ top: 0, behavior: "instant" }); }, 220);
+  });
+  $("#q").addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && e.target.value) { e.target.value = ""; ui.q = ""; render(); }
+  });
+  addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement.tagName !== "INPUT") { e.preventDefault(); $("#q").focus(); }
+  });
+  $("#cats").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    ui.cat = b.dataset.cat;
+    store.set("cat", ui.cat);
+    render();
+    scrollTo({ top: 0, behavior: "instant" });
+  });
+  $("#sort").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.sort === "shuffle") ITEMS.forEach((it) => { it.r = Math.random(); });
+    ui.sort = b.dataset.sort;
+    store.set("sort", ui.sort);
+    render();
+    scrollTo({ top: 0, behavior: "instant" });
+  });
+  $("#resultLine").addEventListener("click", (e) => {
+    if (e.target.id !== "clear") return;
+    ui.q = ""; ui.cat = "all"; $("#q").value = "";
+    store.set("cat", "all");
+    render();
+  });
+  $("#years").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    const target = b && document.getElementById("y" + b.dataset.year);
+    if (target) target.scrollIntoView({ block: "start" });
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+  render();
+
+  const saved = store.get("pos", null);
+  const savedIdx = saved && isDefaultView() ? ITEMS.findIndex((it) => it.key === saved) : -1;
+  if (savedIdx > 4) {
+    resumeBtn.textContent = `Kaldığın yere dön · ${fmtMonth.format(ITEMS[savedIdx].d)}`;
+    resumeBtn.hidden = false;
+    resumeBtn.addEventListener("click", () => {
+      resumeBtn.hidden = true;
+      const el = list.querySelector(`.item[data-i="${savedIdx}"]`);
+      if (el) el.scrollIntoView({ block: "start" });
+    });
+  }
+})();
+</script>
+</body>
+</html>
